@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --side:#13294B; --side-2:#1E3A66; --side-ink:#C9D4E5;
+    --bg:#F2F4F7; --surface:#fff; --line:#E1E5EB; --line-2:#EEF1F4;
+    --ink:#16202E; --ink-2:#465264; --muted:#6B7686;
+    --info:#2459B3; --info-soft:#E8EFFA;
+    --model:#0B7480; --model-soft:rgba(11,116,128,.13);
+    --ok:#2F7D4A; --ok-soft:#E5F2E9;
+    --watch:#9A5B00; --watch-c:#D98A1C; --watch-soft:#FDF1DD;
+    --act:#B3261E; --act-soft:#FBE7E5;
+    --r:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  button,select,input{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--info);outline-offset:2px}
+  .app{display:grid;grid-template-columns:208px 1fr;min-height:100vh}
+
+  aside{background:var(--side);color:var(--side-ink);padding:20px 12px;display:flex;flex-direction:column;gap:3px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:600;font-size:18px;padding:0 8px 20px}
+  .brand small{display:block;font-weight:400;font-size:11.5px;color:#8FA0BA}
+  .nav a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;color:inherit;text-decoration:none}
+  .nav a svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .nav a.on{background:var(--side-2);color:#fff}
+  .nav a:not(.on):hover{background:rgba(255,255,255,.06)}
+  .side-foot{margin-top:auto;padding:12px 10px 0;font-size:12px;color:#8FA0BA;border-top:1px solid rgba(255,255,255,.08)}
+
+  main{padding:16px 22px 28px;min-width:0}
+  .topbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .crumb{font-size:12.5px;color:var(--muted)}
+  .crumb b{display:block;color:var(--ink);font-size:20px;font-weight:600}
+  .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .flag{font-size:12px;padding:3px 9px;border-radius:999px;background:#F1F3F6;color:var(--ink-2);border:1px solid var(--line)}
+  .switch{display:inline-flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .switch button,.switch select{border:0;background:none;padding:7px 11px;cursor:pointer}
+  .switch select{border-left:1px solid var(--line);border-right:1px solid var(--line);min-width:118px;font-weight:500}
+  .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;cursor:pointer}
+  .btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+  .ph{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:13px 16px 0}
+  .ph h2{margin:0;font-size:14.5px;font-weight:600}
+  .hint{font-size:12px;color:var(--muted)}
+  .pb{padding:10px 16px 14px}
+  .view{display:none;gap:14px}
+  .view.on{display:grid}
+
+  /* situation bar */
+  .situation{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:stretch}
+  .alerts{display:grid;gap:6px;padding:12px 14px}
+  .alert{display:flex;gap:10px;align-items:flex-start;padding:8px 11px;border-radius:8px;font-size:13.5px}
+  .alert i{font-style:normal;font-weight:600;font-size:12px;padding:1px 7px;border-radius:5px;white-space:nowrap;margin-top:1px}
+  .alert.act{background:var(--act-soft)} .alert.act i{background:var(--act);color:#fff}
+  .alert.watch{background:var(--watch-soft)} .alert.watch i{background:var(--watch-c);color:#1d1300}
+  .alert.ok{background:var(--ok-soft)} .alert.ok i{background:var(--ok);color:#fff}
+  .alert.info{background:var(--info-soft)} .alert.info i{background:var(--info);color:#fff}
+  .alert small{display:block;color:var(--muted);font-size:12px}
+  .scrub{padding:12px 16px;min-width:340px;display:grid;gap:8px;align-content:center}
+  .scrub .now{font-weight:600;font-size:15px}
+  .scrub .now span{font-weight:400;color:var(--muted);font-size:12.5px}
+  .scrub .row{display:flex;gap:8px;align-items:center}
+  .scrub input[type=range]{flex:1;accent-color:var(--ink)}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--model);width:15px;height:15px}
+
+  /* swimlane */
+  #lane svg{width:100%;height:auto}
+  .lane-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);padding:0 16px 12px}
+  .lane-legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:14px;height:9px;border-radius:2px;display:inline-block}
+
+  .grid4{display:grid;grid-template-columns:1fr 1.25fr 1fr 1fr;gap:14px}
+  .kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line-2)}
+  .kv:last-child{border-bottom:0}
+  .kv span:first-child{color:var(--muted)}
+  .kv b{font-weight:500}
+  .chg{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:baseline;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line-2)}
+  .chg:last-child{border-bottom:0}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .delta{font-size:12.5px;font-weight:500}
+  .val{font-size:30px;font-weight:600;letter-spacing:-.4px;line-height:1.15}
+  .unit{font-size:13px;font-weight:400;color:var(--muted);margin-left:3px}
+  .sub{font-size:12.5px;color:var(--muted)}
+  .caveat{margin-top:10px;font-size:12px;color:var(--watch);background:var(--watch-soft);border-radius:6px;padding:6px 8px}
+  .empty{border:1.5px dashed var(--line);border-radius:8px;color:var(--muted);padding:20px 14px;text-align:center;font-size:13px}
+  .empty b{display:block;color:var(--ink-2);font-weight:500;margin-bottom:2px}
+
+  /* cohort */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .stat{padding:13px 16px}
+  .stat small{color:var(--muted);font-size:12.5px}
+  .stat strong{display:block;font-size:24px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-weight:500;color:var(--muted);font-size:12.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#F7F9FC}
+  .pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .pill.act{background:var(--act-soft);color:var(--act)} .pill.watch{background:var(--watch-soft);color:var(--watch)}
+  .pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.info{background:var(--info-soft);color:var(--info)}
+
+  .labs4{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .model2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  #tip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;font-size:12.5px;line-height:1.5;padding:8px 10px;border-radius:7px;white-space:pre-line;opacity:0;transition:opacity 80ms;max-width:280px;z-index:9}
+  [data-tip]{cursor:pointer}
+  @media (max-width:1200px){.grid4{grid-template-columns:1fr 1fr}}
+  @media (max-width:900px){.app{grid-template-columns:1fr}aside{display:none}.situation,.labs4,.model2{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.scrub{min-width:0}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#2459B3"/><path d="M6 15h4l2.5-6 3.5 11 2.5-5H22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>Digest<small>GEA digital twin</small></div>
+    </div>
+    <nav class="nav">
+      <a href="#cohort" data-view="cohort"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>Cohort</a>
+      <a href="#patient" data-view="patient"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Patient</a>
+      <a href="#labs" data-view="labs"><svg viewBox="0 0 24 24"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3"/><path d="M8 3h8"/></svg>Labs</a>
+      <a href="#model" data-view="model"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 8-9"/><path d="M14 6h6v6"/></svg>Model</a>
+    </nav>
+    <div class="side-foot">ORIEN · Moffitt<br>De-identified · replay mode</div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="crumb" id="crumb">Perioperative FLOT<b id="title">Cohort</b></div>
+      <div class="tools">
+        <span class="flag" id="demoFlag" hidden>Demo patients</span>
+        <span class="flag" id="predFlag" hidden>Placeholder model</span>
+        <div class="switch" id="ptSwitch">
+          <button id="prevPt" aria-label="Previous patient">‹</button>
+          <select id="pick" aria-label="Choose patient"></select>
+          <button id="nextPt" aria-label="Next patient">›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= COHORT ================= -->
+    <section class="view" id="v-cohort">
+      <div class="stats" id="cohortStats"></div>
+      <div class="panel">
+        <div class="ph"><h2>Patients by attention priority</h2><span class="hint" id="cohortAsOf"></span></div>
+        <div class="pb">
+          <div class="chips" id="filters" role="group" aria-label="Filters"></div>
+          <table style="margin-top:10px">
+            <thead><tr><th>Patient</th><th>Where they are</th><th>Top flag</th><th>Course</th><th>Latest labs</th></tr></thead>
+            <tbody id="cohortRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PATIENT ================= -->
+    <section class="view" id="v-patient">
+      <div class="situation">
+        <div class="panel alerts" id="alerts" aria-live="polite"></div>
+        <div class="panel scrub">
+          <div class="now" id="nowLabel"></div>
+          <div class="row">
+            <button class="btn" id="prevV" aria-label="Previous visit">‹</button>
+            <input type="range" id="visit" min="0" max="0" value="0" aria-label="Evaluation visit">
+            <button class="btn" id="nextV" aria-label="Next visit">›</button>
+          </div>
+          <label class="toggle"><input type="checkbox" id="reveal"> Reveal what happened next</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Clinical course</h2><span class="hint">weeks from first FLOT · hover any mark</span></div>
+        <div class="pb" id="lane"></div>
+        <div class="lane-legend">
+          <span><svg width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="#2459B3"/></svg>Observed</span>
+          <span><svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="none" stroke="#2459B3" stroke-width="1.5"/></svg>FLOT visit inferred from schedule</span>
+          <span><svg width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="#D98A1C"/></svg>Watch (recurrence, metastasis, progression)</span>
+          <span><i class="sw" style="background:var(--model-soft);border:1px dashed var(--model)"></i>Twin forecast</span>
+          <span><i class="sw" style="background:#E9ECF1"></i>Hidden future (replay)</span>
+        </div>
+      </div>
+
+      <div class="grid4">
+        <div class="panel"><div class="ph"><h2>As of this visit</h2></div><div class="pb" id="asof"></div></div>
+        <div class="panel"><div class="ph"><h2>Changed since last visit</h2><span class="hint" id="sinceLbl"></span></div><div class="pb" id="changes"></div></div>
+        <div class="panel"><div class="ph"><h2>Pathologic complete response</h2></div><div class="pb" id="pcr"></div></div>
+        <div class="panel"><div class="ph"><h2>Time to recurrence</h2></div><div class="pb" id="ttr"></div></div>
+      </div>
+    </section>
+
+    <!-- ================= LABS ================= -->
+    <section class="view" id="v-labs">
+      <div class="panel"><div class="pb" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center">
+        <span id="labsAsOf" class="sub"></span>
+        <span class="sub"><b style="color:#2459B3">—</b> observed &nbsp; <b style="color:#0B7480">- -</b> forecast &nbsp; <span class="sw" style="background:#EDF5EF;vertical-align:middle"></span> reference range &nbsp; <span class="sw" style="background:#F5F6F9;border:1px solid #E1E5EB;vertical-align:middle"></span> post-op</span>
+      </div></div>
+      <div class="labs4" id="labs4"></div>
+    </section>
+
+    <!-- ================= MODEL ================= -->
+    <section class="view" id="v-model">
+      <div class="model2">
+        <div class="panel"><div class="ph"><h2>Inputs the twin used</h2><span class="hint" id="inAsOf"></span></div><div class="pb" id="inputs"></div></div>
+        <div class="panel"><div class="ph"><h2>How the forecast moved, visit by visit</h2></div><div class="pb" id="history"></div></div>
+      </div>
+      <div class="panel"><div class="ph"><h2>Scenario comparison</h2><span class="hint">current protocol vs modified dose</span></div>
+        <div class="pb"><div class="empty"><b>Scenarios run when the twin is connected</b>Each run will overlay the forecast under the current protocol with a dose-modified alternative, on the same axes as the lab and recurrence forecasts.</div></div></div>
+    </section>
+  </main>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<!--
+  Real data (optional): patients_data.js next to this file, defining `const PATIENTS = [...]`.
+  Each patient, all times in WEEKS from first FLOT dose:
+  { id, sex, stage,
+    diag:[wk], biopsy:[wk], imaging:[wk], surg:[wk],
+    flot:[{wk, window:"neoadjuvant"|"adjuvant", inferred:true}],   // q2w visits; inferred when only start/stop known
+    other:[{wk, drug}],
+    events:[{type:"recur"|"mets"|"pd", wk, site}],
+    death: wk|null, last: wk,
+    labs:{ "Neutrophils":[{wk,val}], ... }, bmi:[{wk,val}],
+    pred:{ placeholder:false,
+           byVisit:[{wk, pcr:{p,lo,hi}, ttr:{median,lo,hi},
+                     labs:{ "Neutrophils":[{wk,mid,lo,hi}] }, inputs:["..."] }] } }
+-->
+<script src="patients_data.js"></script>
+<script>
+/* ============ constants ============ */
+const LABS = {
+  "Neutrophils": {unit:"k/uL", ref:[1.8, 7.7], base:4.2, sens:1.0, act:1.5},
+  "WBC":         {unit:"k/uL", ref:[4.0, 11.0], base:6.8, sens:0.8},
+  "Platelets":   {unit:"k/uL", ref:[150, 400], base:250, sens:0.5},
+  "Albumin":     {unit:"g/dL", ref:[3.5, 5.0], base:4.0, sens:0.12}
+};
+const NAMES = {recur:"Recurrence", mets:"Metastasis", pd:"Progression"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const arr = a => Array.isArray(a) ? a : [];
+const fin = Number.isFinite;
+const fw = w => `wk ${w >= 0 ? "" : "−"}${Math.abs(w).toFixed(w % 1 ? 1 : 0)}`;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+  let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+  return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ============ demo cohort ============ */
+function makeDemo(cfg, i){
+  const r = rng(101 + i * 977);
+  const P = {id:cfg.id, sex:cfg.sex, stage:cfg.stage, diag:[-5], biopsy:[-4], imaging:[-3], surg:[], flot:[], other:[], events:[], death:cfg.death ?? null, last:cfg.last, labs:{}, bmi:[]};
+  for (let k = 0; k < cfg.pre; k++) P.flot.push({wk:2 * k, window:"neoadjuvant", inferred:true});
+  const preEnd = 2 * (cfg.pre - 1);
+  if (cfg.surgery){
+    P.imaging.push(preEnd + 2.5);
+    const s = preEnd + 5 + Math.round(r() * 2); P.surg.push(s);
+    for (let k = 0; k < cfg.post; k++) P.flot.push({wk:s + 6 + 2 * k, window:"adjuvant", inferred:true});
+  } else {
+    for (let k = cfg.pre; k < cfg.pre + (cfg.extra || 0); k++) P.flot.push({wk:2 * k, window:"palliative", inferred:true});
+  }
+  const txEnd = Math.max(...P.flot.map(f => f.wk), ...P.surg);
+  const end = fin(P.death) ? P.death : P.last;
+  for (let w = txEnd + 10; w < end - 2; w += 12) P.imaging.push(w);
+  P.events = cfg.events || [];
+  if (cfg.other) P.other = cfg.other;
+  // lab draws: every FLOT visit + mid-cycle on some + post-op + imaging
+  const draws = new Set();
+  P.flot.forEach(f => { draws.add(f.wk); if (r() < .55) draws.add(f.wk + 1); });
+  P.surg.forEach(s => { draws.add(s - 1); draws.add(s + 1); draws.add(s + 3); });
+  P.imaging.forEach(w => { if (w > -1) draws.add(w); });
+  draws.add(-2);
+  const sens = cfg.sens || 1;
+  const cumBefore = w => P.flot.filter(f => f.wk < w).length;
+  const tox = w => P.flot.reduce((acc, f) => { const d = w - f.wk; return acc + (d > 0 && d < 2.2 ? Math.exp(-((d - 1) ** 2) / .35) : 0) + (d >= 0 && d < .1 ? .35 : 0); }, 0);
+  const sorted = [...draws].filter(w => w <= end).sort((a, b) => a - b);
+  for (const [name, L] of Object.entries(LABS)){
+    P.labs[name] = sorted.map(w => {
+      let v = L.base * (1 - L.sens * sens * (0.45 * tox(w) + 0.035 * cumBefore(w)));
+      if (name === "Albumin"){
+        P.surg.forEach(s => { if (w > s) v -= .55 * Math.exp(-(w - s) / 4); });
+        if (fin(P.death)) v -= .9 * clamp((w - (P.death - 30)) / 30, 0, 1);
+      } else if (fin(P.death)) v *= 1 - .3 * clamp((w - (P.death - 25)) / 25, 0, 1);
+      v *= 1 + (r() - .5) * .12;
+      return {wk:w, val:+Math.max(name === "Albumin" ? 1.8 : 0.3, v).toFixed(name === "Platelets" ? 0 : 2)};
+    });
+  }
+  let b = cfg.bmi0;
+  for (const w of [-3, ...P.flot.map(f => f.wk), ...P.surg.map(s => s + 3), ...P.imaging.filter(w => w > txEnd)].sort((a, c) => a - c)){
+    if (w > end) break;
+    const pre = P.bmi.length ? P.bmi[P.bmi.length - 1].wk : -3;
+    b += -0.12 * (w - pre) * (w <= txEnd ? 1 : -0.4) + (P.surg.some(s => s < w && s >= pre) ? -1.4 : 0);
+    if (fin(P.death) && w > P.death - 30) b -= .6;
+    P.bmi.push({wk:w, val:+(b + (r() - .5) * .3).toFixed(1)});
+  }
+  // placeholder forecasts at every encounter
+  const truthRec = (P.events.find(e => e.type === "recur") || {}).wk;
+  const enc = encounters(P);
+  P.pred = {placeholder:true, byVisit: enc.map((e, k) => {
+    const prog = (k + 1) / enc.length;
+    const pre = !P.surg.length || e.wk < P.surg[0];
+    const p = clamp(cfg.pcr0 + (cfg.pcrTrue - cfg.pcr0) * Math.min(1, prog * 1.6) + (r() - .5) * .06, .03, .95);
+    const wd = .14 * (1 - .5 * Math.min(1, prog * 1.5));
+    const target = fin(truthRec) ? truthRec : cfg.ttrNoRec;
+    const med = Math.round(cfg.ttr0 + (target - cfg.ttr0) * Math.min(1, prog * 1.3) + (r() - .5) * 6);
+    const half = Math.round(med * (.45 - .25 * Math.min(1, prog * 1.4)));
+    return {wk:e.wk,
+      pcr: cfg.surgery && pre ? {p:+p.toFixed(2), lo:+clamp(p - wd, 0, 1).toFixed(2), hi:+clamp(p + wd, 0, 1).toFixed(2)} : null,
+      ttr: {median:med, lo:Math.max(Math.round(e.wk) + 2, med - half), hi:med + half}};
+  })};
+  P.pcrObserved = cfg.surgery ? cfg.pcrObs : null;
+  P.demoAt = cfg.at;
+  return P;
+}
+const DEMO = [
+  {id:"DEMO-01", sex:"F", stage:"cT3 N1 M0", pre:4, post:4, surgery:true, last:150, bmi0:26.4, sens:.8, pcr0:.42, pcrTrue:.66, pcrObs:"ypT0 N0 (pCR)", at:6, ttr0:80, ttrNoRec:170},
+  {id:"DEMO-02", sex:"M", stage:"cT3 N2 M0", pre:4, post:2, surgery:true, death:108, last:108, bmi0:22.8, sens:1.45, pcr0:.35, pcrTrue:.14, pcrObs:"ypT3 N1", ttr0:70, ttrNoRec:150,
+   events:[{type:"recur", wk:54}, {type:"mets", wk:55, site:"liver"}, {type:"mets", wk:55, site:"peritoneum"}, {type:"pd", wk:80}],
+   other:[{wk:60, drug:"Ramucirumab"}, {wk:62, drug:"Ramucirumab"}, {wk:64, drug:"Paclitaxel"}, {wk:66, drug:"Paclitaxel"}, {wk:68, drug:"Paclitaxel"}]},
+  {id:"DEMO-03", sex:"M", stage:"cT4 N2 M1", at:30, pre:4, extra:4, surgery:false, last:62, bmi0:27.2, sens:.9, pcr0:0, pcrTrue:0, ttr0:30, ttrNoRec:30,
+   events:[{type:"mets", wk:-3, site:"liver"}, {type:"pd", wk:30}]},
+  {id:"DEMO-04", sex:"F", stage:"cT3 N1 M0", pre:4, post:4, surgery:true, last:132, bmi0:24.1, sens:1.0, pcr0:.40, pcrTrue:.30, pcrObs:"ypT2 N0", at:96, ttr0:85, ttrNoRec:160,
+   events:[{type:"recur", wk:92}, {type:"mets", wk:93, site:"lung"}]},
+  {id:"DEMO-05", sex:"M", stage:"cT2 N1 M0", pre:4, post:0, surgery:true, last:104, bmi0:25.6, sens:.7, pcr0:.45, pcrTrue:.52, pcrObs:"ypT1 N0", at:40, ttr0:90, ttrNoRec:150},
+  {id:"DEMO-06", sex:"M", stage:"cT3 N2 M0", pre:3, post:0, surgery:true, death:72, last:72, bmi0:21.9, sens:1.7, pcr0:.30, pcrTrue:.12, pcrObs:"ypT3 N2", at:40, ttr0:60, ttrNoRec:120,
+   events:[{type:"mets", wk:38, site:"lung"}, {type:"pd", wk:52}]}
+].map(makeDemo);
+
+const DATA = (typeof PATIENTS !== "undefined" && Array.isArray(PATIENTS) && PATIENTS.length) ? PATIENTS : DEMO;
+
+/* ============ core logic ============ */
+function encounters(P){
+  const e = [];
+  arr(P.diag).forEach(w => e.push({wk:w, kind:"Diagnosis"}));
+  arr(P.biopsy).forEach(w => e.push({wk:w, kind:"Biopsy"}));
+  const fl = arr(P.flot).slice().sort((a, b) => a.wk - b.wk);
+  const counts = {};
+  fl.forEach(f => { counts[f.window] = (counts[f.window] || 0) + 1; e.push({wk:f.wk, kind:`FLOT cycle ${counts[f.window]}`, phase:f.window, inferred:f.inferred}); });
+  arr(P.surg).forEach((w, i) => e.push({wk:w, kind:`Surgery${P.surg.length > 1 ? " " + (i + 1) : ""}`}));
+  const txEnd = Math.max(-99, ...fl.map(f => f.wk), ...arr(P.surg));
+  arr(P.imaging).forEach(w => e.push({wk:w, kind: w < 0 ? "Staging imaging" : w > txEnd ? "Surveillance visit" : "Restaging imaging"}));
+  return e.sort((a, b) => a.wk - b.wk || a.kind.localeCompare(b.kind)).filter((x, i, a) => !i || x.wk !== a[i - 1].wk || x.kind !== a[i - 1].kind);
+}
+function phaseAt(P, t){
+  const s = arr(P.surg)[0], fl = arr(P.flot);
+  if (t < 0) return "Pre-treatment";
+  if (!fin(s)) return fl.some(f => f.wk >= t - 2.5 && f.wk <= t + .1) ? "Systemic therapy" : "Follow-up";
+  if (t < s) return "Neoadjuvant";
+  const adj = fl.filter(f => f.window === "adjuvant");
+  if (adj.length && t <= Math.max(...adj.map(f => f.wk)) + 2) return t < adj[0].wk ? "Post-op recovery" : "Adjuvant";
+  return "Surveillance";
+}
+const known = (P, t) => ({
+  flot: arr(P.flot).filter(f => f.wk <= t), surg: arr(P.surg).filter(w => w <= t),
+  events: arr(P.events).filter(e => e.wk <= t),
+  labs: Object.fromEntries(Object.entries(P.labs || {}).map(([k, v]) => [k, arr(v).filter(o => o.wk <= t)])),
+  bmi: arr(P.bmi).filter(o => o.wk <= t)
+});
+function predAt(P, t){
+  const b = arr(P.pred && P.pred.byVisit).filter(v => v.wk <= t);
+  return b.length ? b[b.length - 1] : null;
+}
+function labForecast(P, name, t){
+  const v = predAt(P, t);
+  if (v && v.labs && v.labs[name]) return v.labs[name];
+  if (!(P.pred && P.pred.placeholder)) return [];
+  const L = LABS[name], obs = known(P, t).labs[name] || [];
+  if (!obs.length) return [];
+  const last = obs[obs.length - 1], planned = arr(P.flot).filter(f => f.wk > t && f.wk <= t + 12);
+  const out = [];
+  for (let k = 0; k <= 24; k++){
+    const w = last.wk + k * .5;
+    const tox = planned.reduce((a, f) => { const d = w - f.wk; return a + (d > 0 && d < 2.2 ? Math.exp(-((d - 1) ** 2) / .35) : 0); }, 0);
+    const lastTox = obs.slice(-1)[0];
+    let mid = last.val + (L.base * .95 - last.val) * (1 - Math.exp(-(w - last.wk) / 1.6));
+    mid *= 1 - .4 * L.sens * tox;
+    const sp = L.base * (.05 + .022 * k * .5);
+    out.push({wk:+w.toFixed(1), mid:+Math.max(0, mid).toFixed(2), lo:+Math.max(0, mid - sp).toFixed(2), hi:+(mid + sp).toFixed(2)});
+  }
+  return out;
+}
+function nextFlot(P, t){ return arr(P.flot).find(f => f.wk > t + .01) || null; }
+
+function flagsAt(P, t, reveal){
+  const K = known(P, t), F = [];
+  const nf = nextFlot(P, t);
+  if (nf && nf.wk - t <= 2.1){
+    const fc = labForecast(P, "Neutrophils", t), at = fc.reduce((b, o) => Math.abs(o.wk - nf.wk) < Math.abs(b.wk - nf.wk) ? o : b, fc[0] || {wk:1e9});
+    if (at && fin(at.mid) && at.mid < LABS.Neutrophils.act)
+      F.push({sev:"act", tag:"Act", text:`Forecast neutrophils ${at.mid} k/uL at next FLOT visit (${fw(nf.wk)})`, why:`Below the ${LABS.Neutrophils.act} k/uL threshold for giving the next cycle. Review dose before ${fw(nf.wk)}.`});
+  }
+  for (const [name, L] of Object.entries(LABS)){
+    const o = K.labs[name]; if (!o || !o.length) continue;
+    const v = o[o.length - 1];
+    if (v.val < L.ref[0]) F.push({sev:"watch", tag:"Watch", text:`${name} ${v.val} ${L.unit}, below range`, why:`Reference ${L.ref[0]}–${L.ref[1]} ${L.unit} · drawn ${fw(v.wk)}`});
+  }
+  const ev = K.events;
+  const newest = ev.filter(e => e.wk > t - 6);
+  newest.forEach(e => F.push({sev:"watch", tag:"Watch", text:`${NAMES[e.type]}${e.site ? ": " + e.site : ""} recorded ${fw(e.wk)}`, why:"New in the last 6 weeks"}));
+  if (/M1/.test(P.stage || "")) F.push({sev:"info", tag:"Info", text:"Metastatic at diagnosis", why:"Perioperative intent may not apply"});
+  const drawsAll = Object.values(K.labs)[0] || [];
+  const lastDraw = drawsAll.length ? drawsAll[drawsAll.length - 1].wk : null;
+  const ph = phaseAt(P, t);
+  if (/Neoadjuvant|Adjuvant|Systemic/.test(ph) && (lastDraw === null || t - lastDraw > 3))
+    F.push({sev:"watch", tag:"Gap", text:"No labs in the last 3 weeks while on treatment", why:"Could be a data dropout rather than stability"});
+  if (reveal){
+    const v = predAt(P, t), rec = arr(P.events).find(e => e.type === "recur");
+    if (v && v.ttr && rec && (rec.wk < v.ttr.lo || rec.wk > v.ttr.hi))
+      F.push({sev:"watch", tag:"Diverged", text:`Recurrence at ${fw(rec.wk)}, outside forecast ${v.ttr.lo}–${v.ttr.hi} wk`, why:"Prediction and outcome disagree"});
+  }
+  const rank = {act:0, watch:1, info:2};
+  return F.sort((a, b) => rank[a.sev] - rank[b.sev]);
+}
+
+/* ============ state + routing ============ */
+let pi = 0, view = "cohort", reveal = false, filter = "all";
+const evalIdx = DATA.map(P => {
+  const e = encounters(P);
+  if (DATA === DEMO){
+    const a = e.findIndex(x => flagsAt(P, x.wk, false).some(f => f.sev === "act"));
+    if (a >= 0 && !fin(P.demoAt)) return a;
+    if (fin(P.demoAt)) return e.reduce((b, x, i) => Math.abs(x.wk - P.demoAt) < Math.abs(e[b].wk - P.demoAt) ? i : b, 0);
+  }
+  const k = e.map(x => x.phase === "neoadjuvant").lastIndexOf(true);
+  return k >= 0 ? k : Math.min(e.length - 1, 3);
+});
+const curP = () => DATA[pi];
+const curE = () => encounters(curP());
+const curT = () => curE()[evalIdx[pi]].wk;
+
+function go(v){
+  view = ["cohort", "patient", "labs", "model"].includes(v) ? v : "cohort";
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === "v-" + view));
+  document.querySelectorAll(".nav a").forEach(a => { a.classList.toggle("on", a.dataset.view === view); a.setAttribute("aria-current", a.dataset.view === view ? "page" : "false"); });
+  $("ptSwitch").style.visibility = view === "cohort" ? "hidden" : "visible";
+  render();
+}
+addEventListener("hashchange", () => go(location.hash.slice(1)));
+
+function render(){
+  const P = curP();
+  $("predFlag").hidden = !DATA.some(p => p.pred && p.pred.placeholder);
+  if (view === "cohort"){ $("title").textContent = "Cohort"; $("crumb").firstChild.textContent = "Perioperative FLOT"; return renderCohort(); }
+  $("title").textContent = P.id;
+  $("crumb").firstChild.textContent = { patient:"Patient", labs:"Labs", model:"Model" }[view] + " · " + encounters(P)[evalIdx[pi]].kind + " · ";
+  $("pick").value = pi;
+  if (view === "patient") renderPatient();
+  if (view === "labs") renderLabs();
+  if (view === "model") renderModel();
+}
+
+/* ============ cohort view ============ */
+function renderCohort(){
+  const rows = DATA.map((P, i) => {
+    const e = encounters(P), t = e[evalIdx[i]].wk, F = flagsAt(P, t, false);
+    return {P, i, t, F, kind:e[evalIdx[i]].kind, phase:phaseAt(P, t), top:F[0], K:known(P, t)};
+  });
+  const rank = r => r.top ? ({act:0, watch:1, info:2})[r.top.sev] * 10 - r.F.filter(f => f.sev !== "info").length : 30;
+  rows.sort((a, b) => rank(a) - rank(b));
+  const nAct = rows.filter(r => r.top && r.top.sev === "act").length, nWatch = rows.filter(r => r.top && r.top.sev === "watch").length;
+  $("cohortStats").innerHTML = [
+    ["Patients", DATA.length, ""],
+    ["Need action at this visit", nAct, nAct ? "act" : "ok"],
+    ["To watch", nWatch, nWatch ? "watch" : "ok"],
+    ["Nothing flagged", rows.length - nAct - nWatch, "ok"]
+  ].map(([l, v, c]) => `<div class="panel stat"><small>${l}</small><strong style="color:${c === "act" ? "var(--act)" : c === "watch" ? "var(--watch)" : "inherit"}">${v}</strong></div>`).join("");
+  $("cohortAsOf").textContent = "each patient at their current replay visit";
+  const FILT = [["all", "Everyone"], ["act", "Needs action"], ["neo", "On neoadjuvant FLOT"], ["post", "Post-op"], ["m1", "Metastatic at diagnosis"], ["quiet", "Nothing flagged"]];
+  $("filters").innerHTML = FILT.map(([k, l]) => `<button class="chip ${filter === k ? "on" : ""}" data-f="${k}" aria-pressed="${filter === k}">${l}</button>`).join("");
+  const keep = r => filter === "all" || (filter === "act" && r.top && r.top.sev === "act") || (filter === "neo" && r.phase === "Neoadjuvant")
+    || (filter === "post" && /Post-op|Adjuvant|Surveillance/.test(r.phase)) || (filter === "m1" && /M1/.test(r.P.stage)) || (filter === "quiet" && (!r.top || r.top.sev === "info"));
+  const shown = rows.filter(keep);
+  $("cohortRows").innerHTML = shown.length ? shown.map(r => {
+    const nb = r.K.labs.Neutrophils || [], last = nb[nb.length - 1], prev = nb[nb.length - 2];
+    const lab = last ? `ANC <b>${last.val}</b><span class="unit">k/uL</span>${prev ? ` <span class="sub">${last.val >= prev.val ? "↑" : "↓"} from ${prev.val}</span>` : ""}` : `<span class="sub">none yet</span>`;
+    const pill = r.top ? `<span class="pill ${r.top.sev}">${esc(r.top.tag)}</span> ${esc(r.top.text)}${r.F.length > 1 ? ` <span class="sub">+${r.F.length - 1}</span>` : ""}` : `<span class="pill ok">Clear</span> <span class="sub">nothing needs action</span>`;
+    return `<tr data-i="${r.i}" data-tip="${esc(r.top ? r.top.text + "\n" + r.top.why : "Nothing flagged at this visit")}">
+      <td><b>${esc(r.P.id)}</b><div class="sub">${esc(r.P.stage)}</div></td>
+      <td>${esc(r.phase)}<div class="sub">${esc(r.kind)} · ${fw(r.t)}</div></td>
+      <td>${pill}</td><td>${miniCourse(r.P, r.t)}</td><td>${lab}</td></tr>`;
+  }).join("") : `<tr><td colspan="5"><div class="empty"><b>No patients match this filter</b>Pick another filter to see the rest of the cohort.</div></td></tr>`;
+}
+function miniCourse(P, t){
+  const e = encounters(P), w0 = Math.min(...e.map(x => x.wk)), w1 = Math.max(...e.map(x => x.wk), fin(P.death) ? P.death : P.last);
+  const X = w => 4 + (w - w0) / ((w1 - w0) || 1) * 152;
+  let s = `<svg viewBox="0 0 160 20" width="160" aria-hidden="true"><line x1="4" x2="156" y1="10" y2="10" stroke="#E1E5EB" stroke-width="2"/>`;
+  s += `<rect x="${X(t)}" y="3" width="${156 - X(t)}" height="14" fill="#F2F4F7"/>`;
+  arr(P.flot).filter(f => f.wk <= t).forEach(f => s += `<circle cx="${X(f.wk)}" cy="10" r="2.4" fill="#2459B3"/>`);
+  arr(P.surg).filter(w => w <= t).forEach(w => s += `<rect x="${X(w) - 3}" y="4" width="6" height="12" fill="#13294B"/>`);
+  arr(P.events).filter(x => x.wk <= t).forEach(x => s += `<circle cx="${X(x.wk)}" cy="10" r="3.4" fill="#D98A1C"/>`);
+  return s + `<line x1="${X(t)}" x2="${X(t)}" y1="1" y2="19" stroke="#16202E"/></svg>`;
+}
+
+/* ============ patient view ============ */
+function renderPatient(){
+  const P = curP(), E = curE(), k = evalIdx[pi], t = E[k].wk;
+  $("visit").max = E.length - 1; $("visit").value = k; $("reveal").checked = reveal;
+  $("nowLabel").innerHTML = `${esc(E[k].kind)} <span>· ${fw(t)} · ${esc(phaseAt(P, t))} · visit ${k + 1} of ${E.length}</span>`;
+  const F = flagsAt(P, t, reveal);
+  const items = F.filter(f => f.sev !== "info");
+  $("alerts").innerHTML = (items.length ? items.slice(0, 3) : [{sev:"ok", tag:"Clear", text:"Nothing needs action at this visit", why:"All recorded labs in range, no new events, forecast within thresholds"}])
+    .concat(F.filter(f => f.sev === "info").slice(0, 1)).concat(items.length > 3 ? [{sev:"info", tag:`+${items.length - 3}`, text:"more flags", why:"See the course below"}] : [])
+    .map(f => `<div class="alert ${f.sev}"><i>${esc(f.tag)}</i><div>${esc(f.text)}<small>${esc(f.why)}</small></div></div>`).join("");
+  renderLane(P, t);
+  renderAsOf(P, t, E[k]);
+  renderChanges(P, E, k);
+  renderPCR(P, t);
+  renderTTR(P, t);
+}
+
+function renderLane(P, t){
+  const end = fin(P.death) ? P.death : P.last;
+  const v = predAt(P, t);
+  const show = w => reveal || w <= t + 1e-9;
+  const G = [];
+  const add = (group, color, label, marks) => { if (marks.length) G.push({group, color, label, marks}); };
+  add("Diagnosis", "#465264", "Diagnosis", arr(P.diag).map(w => ({w, tip:`Diagnosis\n${fw(w)}\nStage ${P.stage}`})));
+  add("Diagnosis", "#465264", "Biopsy", arr(P.biopsy).map(w => ({w, tip:`Biopsy\n${fw(w)}`})));
+  add("Imaging", "#465264", "Imaging", arr(P.imaging).map(w => ({w, tip:`Imaging\n${fw(w)}`})));
+  add("Surgery", "#13294B", "Surgery", arr(P.surg).map((w, i) => ({w, tip:`Surgery ${i + 1}\n${fw(w)}`, shape:"sq"})));
+  const sites = [...new Set(arr(P.events).filter(e => e.type === "mets").map(e => e.site))];
+  add("Response", "#9A5B00", "Recurrence", arr(P.events).filter(e => e.type === "recur").map(e => ({w:e.wk, tip:`Recurrence\n${fw(e.wk)}`, watch:true})));
+  add("Response", "#9A5B00", "Progression", arr(P.events).filter(e => e.type === "pd").map(e => ({w:e.wk, tip:`Progression (imaging)\n${fw(e.wk)}`, watch:true})));
+  sites.forEach(s => add("Response", "#9A5B00", `Metastasis: ${s}`, arr(P.events).filter(e => e.type === "mets" && e.site === s).map(e => ({w:e.wk, tip:`Metastasis: ${s}\n${fw(e.wk)}`, watch:true}))));
+  if (v && v.ttr) G.push({group:"Twin", color:"#0B7480", label:"Recurrence forecast", marks:[], forecast:true});
+  ["Docetaxel", "Fluorouracil", "Oxaliplatin"].forEach(d => add("Oncologic meds", "#2459B3", d, arr(P.flot).map((f, i) => ({w:f.wk, hollow:f.inferred, tip:`${d} · FLOT ${f.window}\n${fw(f.wk)}${f.inferred ? "\nVisit inferred from q2w schedule" : ""}`}))));
+  [...new Set(arr(P.other).map(o => o.drug))].forEach(d => add("Oncologic meds", "#2459B3", d, arr(P.other).filter(o => o.drug === d).map(o => ({w:o.wk, tip:`${d}\n${fw(o.wk)}`}))));
+  const draws = arr((P.labs || {}).Neutrophils);
+  add("Labs", "#465264", "Lab draw", draws.map(o => ({w:o.wk, small:true, tip:labTip(P, o.wk)})));
+  add("Outcome", "#16202E", fin(P.death) ? "Death" : "Last contact", [{w:end, shape: fin(P.death) ? "sq" : "ring", tip:`${fin(P.death) ? "Death" : "Last contact, alive"}\n${fw(end)}`}]);
+
+  const ws = G.flatMap(g => g.marks.map(m => m.w));
+  const horizon = v && v.ttr ? v.ttr.hi : t + 20;
+  const x0 = Math.min(...ws) - 2, x1 = reveal ? Math.max(...ws, horizon) + 3 : Math.max(t + 30, Math.min(horizon, t + 40)) + 3;
+  const L = 178, R = 990, rowH = 21, top = 44;
+  const nRows = G.length, H = top + nRows * rowH + 34;
+  const X = w => L + (clamp(w, x0, x1) - x0) / (x1 - x0) * (R - L);
+  let s = `<svg viewBox="0 0 1000 ${H}" role="img" aria-label="Clinical course for ${esc(P.id)}">`;
+  // phase bands
+  const s1 = arr(P.surg)[0];
+  const bands = fin(s1) ? [["Neoadjuvant", 0, s1], ["Post-op", s1, x1]] : [["Systemic therapy", 0, x1]];
+  bands.forEach(([n, a, b], i) => {
+    s += `<rect x="${X(a)}" y="${top - 4}" width="${X(b) - X(a)}" height="${nRows * rowH + 6}" fill="${i ? "#F5F6F9" : "#FBFCFD"}"/>`;
+    if (X(Math.min(b, x1)) - X(a) > 84) s += `<text x="${X(a) + 6}" y="${top - 10}" font-size="11.5" fill="#6B7686">${n}</text>`;
+  });
+  // hidden future
+  if (!reveal) s += `<rect x="${X(t)}" y="${top - 4}" width="${R - X(t)}" height="${nRows * rowH + 6}" fill="#E9ECF1" opacity=".55"/>`;
+  // forecast band on recurrence row
+  const fRow = G.findIndex(g => g.forecast);
+  if (v && v.ttr && fRow >= 0){
+    const ry = top + fRow * rowH + rowH / 2;
+    s += `<g data-tip="${esc(`Twin forecast of recurrence${P.pred.placeholder ? " (placeholder)" : ""}\nmedian ${fw(v.ttr.median)}, range ${v.ttr.lo}–${v.ttr.hi} wk\nas of ${fw(v.wk)}`)}">
+      <rect x="${X(Math.max(v.ttr.lo, t))}" y="${ry - 7}" width="${Math.max(3, X(v.ttr.hi) - X(Math.max(v.ttr.lo, t)))}" height="14" rx="7" fill="rgba(11,116,128,.14)" stroke="#0B7480" stroke-dasharray="3 3"/>
+      ${v.ttr.median <= x1 ? `<circle cx="${X(v.ttr.median)}" cy="${ry}" r="4" fill="#0B7480"/>` : ""}</g>`;
+    if (v.ttr.median > x1) s += `<text x="${R - 4}" y="${ry - 10}" text-anchor="end" font-size="11" fill="#0B7480">median ${fw(v.ttr.median)} →</text>`;
+  }
+  let lastGroup = null;
+  G.forEach((g, r) => {
+    const y = top + r * rowH + rowH / 2;
+    if (g.group !== lastGroup && r) s += `<line x1="20" x2="${R}" y1="${y - rowH / 2}" y2="${y - rowH / 2}" stroke="#E1E5EB"/>`;
+    lastGroup = g.group;
+    s += `<line x1="${L}" x2="${R}" y1="${y}" y2="${y}" stroke="#EEF1F4"/>`;
+    s += `<text x="${L - 10}" y="${y + 4}" text-anchor="end" font-size="12" fill="${g.color}">${esc(g.label)}</text>`;
+    g.marks.forEach(m => {
+      if (!show(m.w) || m.w > x1) return;
+      const future = m.w > t + 1e-9, op = future ? .42 : 1;
+      const col = m.watch ? "#D98A1C" : g.color;
+      const cx = X(m.w), tip = esc(m.tip + (future ? "\n(after this visit, hindsight)" : ""));
+      if (m.shape === "sq") s += `<rect x="${cx - 5}" y="${y - 5}" width="10" height="10" fill="${col}" opacity="${op}" data-tip="${tip}"/>`;
+      else if (m.shape === "ring") s += `<circle cx="${cx}" cy="${y}" r="5" fill="#fff" stroke="${col}" stroke-width="2" opacity="${op}" data-tip="${tip}"/>`;
+      else if (m.hollow) s += `<circle cx="${cx}" cy="${y}" r="4.5" fill="#fff" stroke="${col}" stroke-width="1.8" opacity="${op}" data-tip="${tip}"/>`;
+      else s += `<circle cx="${cx}" cy="${y}" r="${m.small ? 3.4 : 5}" fill="${col}" opacity="${op}" data-tip="${tip}"/>`;
+    });
+  });
+  const ay = top + nRows * rowH + 6;
+  const step = [2, 4, 8, 13, 26, 52].find(v2 => (x1 - x0) / v2 <= 12) || 104;
+  for (let w = Math.ceil(x0 / step) * step; w <= x1; w += step) s += `<text x="${X(w)}" y="${ay + 14}" text-anchor="middle" font-size="11" fill="#6B7686">${w}</text>`;
+  s += `<line x1="${X(t)}" x2="${X(t)}" y1="18" y2="${ay}" stroke="#16202E" stroke-width="1.6"/>`;
+  s += `<rect x="${X(t) - 32}" y="2" width="64" height="16" rx="8" fill="#16202E"/><text x="${X(t)}" y="14" text-anchor="middle" font-size="11" fill="#fff">${fw(t)}</text>`;
+  $("lane").innerHTML = s + "</svg>";
+}
+function labTip(P, w){
+  const parts = Object.entries(LABS).map(([n, L]) => {
+    const o = arr((P.labs || {})[n]).find(x => x.wk === w); if (!o) return null;
+    const flag = o.val < L.ref[0] ? " low" : o.val > L.ref[1] ? " high" : "";
+    return `${n} ${o.val} ${L.unit}${flag}  (${L.ref[0]}–${L.ref[1]})`;
+  }).filter(Boolean);
+  return `Labs · ${fw(w)}\n` + parts.join("\n");
+}
+
+function renderAsOf(P, t, e){
+  const K = known(P, t), s1 = K.surg[0];
+  const cyc = K.flot.filter(f => f.window === (phaseAt(P, t) === "Adjuvant" ? "adjuvant" : "neoadjuvant")).length;
+  const bmi = K.bmi, b0 = bmi[0], b1 = bmi[bmi.length - 1];
+  const draws = arr((P.labs || {}).Neutrophils).filter(o => o.wk <= t), lastDraw = draws[draws.length - 1];
+  const rows = [
+    ["Stage at diagnosis", P.stage], ["Sex", P.sex === "F" ? "Female" : P.sex === "M" ? "Male" : "n/a"],
+    ["Phase", phaseAt(P, t)], ["FLOT cycles given", `${K.flot.length}${cyc && cyc !== K.flot.length ? ` (${cyc} this phase)` : ""}`],
+    ["Surgery", fin(s1) ? fw(s1) : "not yet"],
+    ["Weight (BMI)", b1 ? `${b1.val}${b0 && b0 !== b1 ? ` <span class="sub">from ${b0.val}</span>` : ""}` : "no measurement"],
+    ["Last labs", lastDraw ? (t - lastDraw.wk < .05 ? "this visit" : `${(t - lastDraw.wk).toFixed(1)} wk ago`) : "none yet"],
+    ["HER2, PD-L1, CEA, CA 19-9", `<span class="sub">not in this data extract</span>`]
+  ];
+  if (reveal) rows.push(["Outcome", fin(P.death) ? `Died ${fw(P.death)}` : `Alive at ${fw(P.last)}`]);
+  $("asof").innerHTML = rows.map(([k, v]) => `<div class="kv"><span>${esc(k)}</span><b>${v}</b></div>`).join("");
+}
+
+function renderChanges(P, E, k){
+  const t = E[k].wk;
+  if (k === 0){ $("sinceLbl").textContent = ""; $("changes").innerHTML = `<div class="empty"><b>First recorded visit</b>Changes show from the next visit on.</div>`; return; }
+  const tp = E[k - 1].wk;
+  $("sinceLbl").textContent = `vs ${E[k - 1].kind}, ${fw(tp)}`;
+  const out = [];
+  arr(P.events).filter(e => e.wk > tp && e.wk <= t).forEach(e => out.push(["#D98A1C", `${NAMES[e.type]}${e.site ? ": " + e.site : ""}`, "new"]));
+  arr(P.surg).filter(w => w > tp && w <= t).forEach(() => out.push(["#13294B", "Surgery performed", "new"]));
+  for (const [n, L] of Object.entries(LABS)){
+    const o = arr((P.labs || {})[n]), a = o.filter(x => x.wk <= tp).slice(-1)[0], b = o.filter(x => x.wk <= t).slice(-1)[0];
+    if (!a || !b || a.wk === b.wk) continue;
+    const pct = (b.val - a.val) / a.val * 100;
+    if (Math.abs(pct) < 8) continue;
+    const low = b.val < L.ref[0];
+    out.push([low ? "#D98A1C" : "#2459B3", `${n} ${a.val} → <b>${b.val}</b><span class="unit">${L.unit}</span>`, `<span class="delta" style="color:${low ? "var(--watch)" : "var(--ink-2)"}">${pct > 0 ? "+" : ""}${pct.toFixed(0)}%</span>`]);
+  }
+  const pa = predAt(P, tp), pb = predAt(P, t);
+  if (pa && pb && pa.pcr && pb.pcr && Math.abs(pa.pcr.p - pb.pcr.p) >= .03)
+    out.push(["#0B7480", `pCR forecast ${Math.round(pa.pcr.p * 100)}% → <b>${Math.round(pb.pcr.p * 100)}%</b>`, `<span class="delta" style="color:var(--model)">${pb.pcr.p > pa.pcr.p ? "+" : "−"}${Math.abs(Math.round((pb.pcr.p - pa.pcr.p) * 100))} pts</span>`]);
+  if (pa && pb && pa.ttr && pb.ttr && Math.abs(pa.ttr.median - pb.ttr.median) >= 3)
+    out.push(["#0B7480", `Recurrence forecast ${pa.ttr.median} → <b>${pb.ttr.median}</b> wk`, `<span class="delta" style="color:var(--model)">${pb.ttr.median > pa.ttr.median ? "later" : "sooner"}</span>`]);
+  $("changes").innerHTML = out.length
+    ? out.map(([c, txt, d]) => `<div class="chg"><span class="dot" style="background:${c}"></span><span>${txt}</span><span>${d}</span></div>`).join("")
+    : `<div class="empty"><b>No meaningful change</b>Labs moved less than 8% and no new events or forecast shifts.</div>`;
+}
+
+function renderPCR(P, t){
+  const s1 = arr(P.surg)[0];
+  if (!fin(s1)){ $("pcr").innerHTML = `<div class="empty"><b>Not applicable</b>No resection planned, so pathologic response won't be assessed.</div>`; return; }
+  const pre = arr(P.pred && P.pred.byVisit).filter(v => v.wk < s1 && v.pcr && v.wk <= t);
+  const c = pre.length ? pre[pre.length - 1].pcr : null;
+  if (!c){ $("pcr").innerHTML = `<div class="empty"><b>No forecast yet</b>The twin forecasts pCR once treatment starts.</div>`; return; }
+  const after = t >= s1;
+  const W = 250, X = v => 6 + v * (W - 12);
+  let s = `<div class="val">${Math.round(c.p * 100)}<span class="unit">% probability</span></div>
+    <div class="sub">${after ? `final pre-op forecast, ${fw(pre[pre.length - 1].wk)}` : `forecast as of ${fw(pre[pre.length - 1].wk)}`}</div>
+    <svg viewBox="0 0 ${W} 46" width="100%" style="margin-top:10px" role="img" aria-label="pCR forecast ${Math.round(c.p * 100)} percent, range ${Math.round(c.lo * 100)} to ${Math.round(c.hi * 100)}">
+      <rect x="6" y="14" width="${W - 12}" height="10" rx="5" fill="#EEF1F4"/>
+      <rect x="${X(c.lo)}" y="14" width="${X(c.hi) - X(c.lo)}" height="10" rx="5" fill="rgba(11,116,128,.32)"/>
+      <circle cx="${X(c.p)}" cy="19" r="7" fill="#0B7480" stroke="#fff" stroke-width="2"/>
+      <text x="6" y="42" font-size="11" fill="#6B7686">0%</text><text x="${W - 6}" y="42" text-anchor="end" font-size="11" fill="#6B7686">100%</text></svg>
+    <div class="sub">${Math.round(c.lo * 100)}–${Math.round(c.hi * 100)}% range · cohort comparator not set</div>`;
+  if (after && P.pcrObserved && reveal) s += `<div class="kv" style="margin-top:8px"><span>Observed at surgery</span><b>${esc(P.pcrObserved)}</b></div>`;
+  else if (after) s += `<div class="sub" style="margin-top:8px">Pathology result available after surgery. Turn on reveal to compare.</div>`;
+  if (P.pred.placeholder) s += `<div class="caveat">Placeholder output. Built from labs and weight only; biomarkers not available.</div>`;
+  $("pcr").innerHTML = s;
+}
+
+function renderTTR(P, t){
+  const v = predAt(P, t);
+  if (!v || !v.ttr){ $("ttr").innerHTML = `<div class="empty"><b>No forecast yet</b>Starts at the first treatment visit.</div>`; return; }
+  const T = v.ttr, rec = arr(P.events).find(e => e.type === "recur");
+  const max = Math.max(T.hi, reveal && rec ? rec.wk : 0, reveal ? (fin(P.death) ? P.death : P.last) : 0) * 1.08;
+  const W = 250, X = w => 6 + clamp(w / max, 0, 1) * (W - 12);
+  let s = `<div class="val">${T.median}<span class="unit">wk median</span></div>
+    <div class="sub">about ${(T.median / 4.345).toFixed(0)} months from first FLOT · ${T.lo}–${T.hi} wk range</div>
+    <svg viewBox="0 0 ${W} 50" width="100%" style="margin-top:10px" role="img" aria-label="Recurrence forecast">
+      <rect x="6" y="16" width="${W - 12}" height="10" rx="5" fill="#EEF1F4"/>
+      <rect x="${X(T.lo)}" y="16" width="${X(T.hi) - X(T.lo)}" height="10" rx="5" fill="rgba(11,116,128,.32)"/>
+      <line x1="${X(t)}" x2="${X(t)}" y1="8" y2="34" stroke="#16202E" data-tip="This visit, ${fw(t)}"/>
+      <circle cx="${X(T.median)}" cy="21" r="7" fill="#0B7480" stroke="#fff" stroke-width="2"/>`;
+  if (reveal && rec) s += `<path d="M${X(rec.wk) - 6} 15L${X(rec.wk) + 6} 27M${X(rec.wk) + 6} 15L${X(rec.wk) - 6} 27" stroke="#D98A1C" stroke-width="2.6" stroke-linecap="round" data-tip="Observed recurrence ${fw(rec.wk)}"/>`;
+  s += `<text x="6" y="46" font-size="11" fill="#6B7686">0</text><text x="${W - 6}" y="46" text-anchor="end" font-size="11" fill="#6B7686">${max.toFixed(0)} wk</text></svg>`;
+  if (reveal) s += `<div class="sub" style="margin-top:6px">${rec ? `Observed at ${fw(rec.wk)}, ${rec.wk >= T.lo && rec.wk <= T.hi ? "inside" : "outside"} the forecast range` : "No recurrence observed in follow-up"}</div>`;
+  const nIn = Object.values(known(P, t).labs)[0];
+  if (nIn && nIn.length < 4) s += `<div class="caveat">Based on only ${nIn.length} lab draw${nIn.length === 1 ? "" : "s"} so far. Wide range expected.</div>`;
+  $("ttr").innerHTML = s;
+}
+
+/* ============ labs view ============ */
+function renderLabs(){
+  const P = curP(), t = curT();
+  $("labsAsOf").textContent = `As of ${curE()[evalIdx[pi]].kind}, ${fw(t)}. Comparator: this patient's pre-treatment baseline.`;
+  $("labs4").innerHTML = Object.keys(LABS).map(n => `<div class="panel"><div class="ph"><h2>${n}</h2><span class="hint" id="h-${n}"></span></div><div class="pb" id="c-${n}"></div></div>`).join("");
+  for (const [n, L] of Object.entries(LABS)){
+    const obsAll = arr((P.labs || {})[n]), obs = obsAll.filter(o => reveal || o.wk <= t), fc = labForecast(P, n, t);
+    if (!obsAll.length){ $("c-" + n).innerHTML = `<div class="empty"><b>Not collected</b>No ${n} results in the data extract for this patient.</div>`; continue; }
+    const base = obsAll.find(o => o.wk < 0) || obsAll[0], cur = obsAll.filter(o => o.wk <= t).slice(-1)[0];
+    if (cur){
+      const pct = (cur.val - base.val) / base.val * 100;
+      $("h-" + n).innerHTML = `<b style="color:var(--ink);font-size:15px">${cur.val}</b> ${L.unit} · ${pct >= 0 ? "+" : ""}${pct.toFixed(0)}% vs baseline ${base.val}`;
+    }
+    const ws = [...obs.map(o => o.wk), ...fc.map(o => o.wk)], vs = [...obs.map(o => o.val), ...fc.flatMap(o => [o.lo, o.hi]), ...L.ref];
+    const x0 = Math.min(...ws) - 1, x1 = Math.max(...ws, t + 2) + 1, y0 = 0, y1 = Math.max(...vs) * 1.08;
+    const W = 460, H = 190, l = 40, r = 452, tp = 10, bt = 160;
+    const X = w => l + (w - x0) / (x1 - x0) * (r - l), Y = v => bt - (v - y0) / (y1 - y0) * (bt - tp);
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${n} over time">`;
+    const s1 = arr(P.surg)[0];
+    if (fin(s1) && s1 < x1) s += `<rect x="${X(Math.max(s1, x0))}" y="${tp}" width="${r - X(Math.max(s1, x0))}" height="${bt - tp}" fill="#F5F6F9"/><text x="${X(Math.max(s1, x0)) + 4}" y="${tp + 11}" font-size="10.5" fill="#6B7686">post-op</text>`;
+    s += `<rect x="${l}" y="${Y(L.ref[1])}" width="${r - l}" height="${Y(L.ref[0]) - Y(L.ref[1])}" fill="#EDF5EF" opacity=".85"/>`;
+    if (L.act) s += `<line x1="${l}" x2="${r}" y1="${Y(L.act)}" y2="${Y(L.act)}" stroke="#B3261E" stroke-dasharray="3 3"/><text x="${r}" y="${Y(L.act) - 4}" text-anchor="end" font-size="10.5" fill="#B3261E">dose threshold ${L.act}</text>`;
+    s += `<line x1="${l}" x2="${r}" y1="${Y(base.val)}" y2="${Y(base.val)}" stroke="#465264" stroke-dasharray="1 3"/>`;
+    [0, .5, 1].forEach(f => { const v = y0 + f * (y1 - y0); s += `<text x="${l - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="10.5" fill="#6B7686">${+v.toFixed(v < 10 ? 1 : 0)}</text>`; });
+    const step = [2, 4, 8, 13, 26, 52].find(v2 => (x1 - x0) / v2 <= 8) || 104;
+    for (let w = Math.ceil(x0 / step) * step; w <= x1; w += step) s += `<text x="${X(w)}" y="${bt + 15}" text-anchor="middle" font-size="10.5" fill="#6B7686">${w}</text>`;
+    if (fc.length > 1){
+      s += `<path d="M${fc.map(o => `${X(o.wk).toFixed(1)},${Y(o.hi).toFixed(1)}`).join("L")}L${fc.slice().reverse().map(o => `${X(o.wk).toFixed(1)},${Y(o.lo).toFixed(1)}`).join("L")}Z" fill="rgba(11,116,128,.14)"/>`;
+      s += `<path d="M${fc.map(o => `${X(o.wk).toFixed(1)},${Y(o.mid).toFixed(1)}`).join("L")}" fill="none" stroke="#0B7480" stroke-width="2" stroke-dasharray="5 4"/>`;
+    }
+    const past = obs.filter(o => o.wk <= t), fut = obs.filter(o => o.wk > t);
+    if (past.length) s += `<path d="M${past.map(o => `${X(o.wk).toFixed(1)},${Y(o.val).toFixed(1)}`).join("L")}" fill="none" stroke="#2459B3" stroke-width="2"/>`;
+    past.forEach(o => s += `<circle cx="${X(o.wk)}" cy="${Y(o.val)}" r="3" fill="${o.val < L.ref[0] ? "#D98A1C" : "#2459B3"}" data-tip="${esc(`${n} ${o.val} ${L.unit}\n${fw(o.wk)}\nrange ${L.ref[0]}–${L.ref[1]} · baseline ${base.val}`)}"/>`);
+    fut.forEach(o => s += `<circle cx="${X(o.wk)}" cy="${Y(o.val)}" r="2.6" fill="#2459B3" opacity=".35" data-tip="${esc(`${n} ${o.val} ${L.unit}\n${fw(o.wk)}\n(after this visit, hindsight)`)}"/>`);
+    s += `<line x1="${X(t)}" x2="${X(t)}" y1="${tp}" y2="${bt}" stroke="#16202E"/>`;
+    $("c-" + n).innerHTML = s + "</svg>";
+  }
+}
+
+/* ============ model view ============ */
+function renderModel(){
+  const P = curP(), t = curT(), K = known(P, t), v = predAt(P, t);
+  $("inAsOf").textContent = `as of ${fw(t)}`;
+  const nDraw = (Object.values(K.labs)[0] || []).length;
+  const used = [["Lab draws", nDraw, nDraw >= 4], ["Weight measurements", K.bmi.length, K.bmi.length >= 2], ["FLOT cycles", K.flot.length, true],
+    ["Surgery", K.surg.length ? "done" : "not yet", true], ["Events recorded", K.events.length, true]];
+  const missing = ["HER2", "PD-L1 CPS", "CEA", "CA 19-9", "ctDNA", "RECIST measurements", "CTCAE toxicity grades", "Dose modifications"];
+  $("inputs").innerHTML = used.map(([k, val, okk]) => `<div class="kv"><span>${k}</span><b>${val}${okk ? "" : ` <span class="pill watch">thin</span>`}</b></div>`).join("")
+    + `<div class="caveat" style="color:var(--ink-2);background:#F2F4F7">Not available in this extract: ${missing.join(", ")}. Forecasts don't use them.</div>`
+    + (P.pred && P.pred.placeholder ? `<div class="caveat">Placeholder model. Numbers are illustrative until the twin is connected.</div>` : "");
+  const hist = arr(P.pred && P.pred.byVisit).filter(h => h.wk <= t);
+  if (hist.length < 2){ $("history").innerHTML = `<div class="empty"><b>Only one forecast so far</b>History builds as the patient comes in for more visits.</div>`; return; }
+  const W = 460, H = 200, l = 40, r = 452, tp = 12, bt = 168;
+  const x0 = hist[0].wk, x1 = Math.max(hist[hist.length - 1].wk, x0 + 1);
+  const X = w => l + (w - x0) / (x1 - x0) * (r - l);
+  const ttrMax = Math.max(...hist.map(h => h.ttr ? h.ttr.hi : 0)) * 1.05;
+  const Yp = p => bt - p * (bt - tp), Yt = w => bt - w / ttrMax * (bt - tp);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Forecast history">`;
+  [0, .5, 1].forEach(f => s += `<line x1="${l}" x2="${r}" y1="${Yp(f)}" y2="${Yp(f)}" stroke="#EEF1F4"/><text x="${l - 6}" y="${Yp(f) + 4}" text-anchor="end" font-size="10.5" fill="#6B7686">${f * 100}%</text>`);
+  const ph = hist.filter(h => h.pcr);
+  if (ph.length > 1){
+    s += `<path d="M${ph.map(h => `${X(h.wk)},${Yp(h.pcr.hi)}`).join("L")}L${ph.slice().reverse().map(h => `${X(h.wk)},${Yp(h.pcr.lo)}`).join("L")}Z" fill="rgba(11,116,128,.12)"/>`;
+    s += `<path d="M${ph.map(h => `${X(h.wk)},${Yp(h.pcr.p)}`).join("L")}" fill="none" stroke="#0B7480" stroke-width="2"/>`;
+    ph.forEach(h => s += `<circle cx="${X(h.wk)}" cy="${Yp(h.pcr.p)}" r="3.2" fill="#0B7480" data-tip="${esc(`pCR forecast ${Math.round(h.pcr.p * 100)}%\n${fw(h.wk)}`)}"/>`);
+  }
+  const th = hist.filter(h => h.ttr);
+  s += `<path d="M${th.map(h => `${X(h.wk)},${Yt(h.ttr.median)}`).join("L")}" fill="none" stroke="#465264" stroke-width="1.6" stroke-dasharray="4 3"/>`;
+  th.forEach(h => s += `<circle cx="${X(h.wk)}" cy="${Yt(h.ttr.median)}" r="3" fill="#fff" stroke="#465264" stroke-width="1.5" data-tip="${esc(`Recurrence forecast ${h.ttr.median} wk median\n${fw(h.wk)}`)}"/>`);
+  s += `<text x="${l}" y="${bt + 16}" font-size="10.5" fill="#6B7686">${fw(x0)}</text><text x="${r}" y="${bt + 16}" text-anchor="end" font-size="10.5" fill="#6B7686">${fw(x1)}</text>`;
+  s += `<text x="${l}" y="${H - 2}" font-size="11" fill="#0B7480">— pCR probability (left axis)</text><text x="${r}" y="${H - 2}" text-anchor="end" font-size="11" fill="#465264">- - median weeks to recurrence (relative)</text>`;
+  $("history").innerHTML = s + "</svg>";
+}
+
+/* ============ wiring ============ */
+$("pick").innerHTML = DATA.map((p, i) => `<option value="${i}">${esc(p.id)}</option>`).join("");
+$("demoFlag").hidden = DATA !== DEMO;
+$("pick").onchange = e => { pi = +e.target.value; render(); };
+$("prevPt").onclick = () => { pi = (pi - 1 + DATA.length) % DATA.length; render(); };
+$("nextPt").onclick = () => { pi = (pi + 1) % DATA.length; render(); };
+const stepVisit = d => { evalIdx[pi] = clamp(evalIdx[pi] + d, 0, curE().length - 1); render(); };
+$("prevV").onclick = () => stepVisit(-1);
+$("nextV").onclick = () => stepVisit(1);
+$("visit").oninput = e => { evalIdx[pi] = +e.target.value; render(); };
+$("reveal").onchange = e => { reveal = e.target.checked; render(); };
+$("filters").onclick = e => { const b = e.target.closest("[data-f]"); if (b){ filter = b.dataset.f; renderCohort(); } };
+$("cohortRows").onclick = e => { const tr = e.target.closest("tr[data-i]"); if (tr){ pi = +tr.dataset.i; location.hash = "patient"; } };
+document.addEventListener("keydown", e => {
+  if (view === "cohort" || ["SELECT", "INPUT"].includes(e.target.tagName)) return;
+  if (e.key === "ArrowRight") stepVisit(1);
+  if (e.key === "ArrowLeft") stepVisit(-1);
+});
+const tip = $("tip");
+document.addEventListener("mousemove", e => {
+  const el = e.target.closest && e.target.closest("[data-tip]");
+  if (!el){ tip.style.opacity = 0; return; }
+  tip.textContent = el.getAttribute("data-tip");
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + 290 > innerWidth) x = e.clientX - 296;
+  if (y + 140 > innerHeight) y = e.clientY - 120;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; tip.style.opacity = 1;
+});
+go(location.hash.slice(1) || "cohort");
+</script>
+</body>
+</html>
